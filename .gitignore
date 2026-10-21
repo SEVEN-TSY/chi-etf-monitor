@@ -1,13 +1,18 @@
 # Dependencies
-node_modules/
+/node_modules/
 .pnpm-store/
 
 # Build output and caches
 dist/
+/docs/*
+!/docs/agents/
+/.scratch/
 dist-ssr/
 .vite/
 *.tsbuildinfo
 coverage/
+__pycache__/
+*.pyc
 
 # Local environment configuration
 .env
