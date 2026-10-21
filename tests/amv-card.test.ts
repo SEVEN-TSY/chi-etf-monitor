@@ -15,7 +15,8 @@ function dashboard(t: TestContext, amv: NonNullable<Payload['amv']>, savedDay: s
   for (const [key, value] of Object.entries({
     window: new EventTarget(),
     document: Object.assign(new EventTarget(), { visibilityState: 'visible' }),
-    localStorage: { getItem: () => JSON.stringify({ version: 1, selectedDay: savedDay }), setItem() {} },
+    localStorage: { getItem: () => JSON.stringify({ version: 1, selectedDay: savedDay,
+      ...(savedDay ? { preset: 'custom', range: [0, 5], period: 5, detailsOpen: true } : {}) }), setItem() {} },
   })) {
     const descriptor = Object.getOwnPropertyDescriptor(globalThis, key)
     Object.defineProperty(globalThis, key, { configurable: true, value })
@@ -106,8 +107,19 @@ test('周末的默认补采目标回到最近已收盘工作日', t => {
   assert.deepEqual(state.amvSyncTargets.value, [])
 })
 
-test('最近触发按日期优先，历史截止日含当日，恢复出的历史选择隐藏最新数据且刷新保留视口', async t => {
-  const { state, data } = dashboard(t, [['2026-10-16', -2.31], ['2026-10-19', 3], ['2026-10-20', 1.2], ['2026-10-21', -2.5]], '2026-10-20')
+test('刷新页面忽略已保存的选中日期，恢复默认浏览并保留时间范围等偏好', t => {
+  const { state } = dashboard(t, [['2026-10-20', .36], ['2026-10-21', 1.2]], '2026-10-12')
+  assert.equal(state.selectedDay.value, null)
+  assert.equal(state.metrics.value?.day, '2026-10-19')
+  assert.deepEqual(state.amvCard.value.latest, { day: '2026-10-21', changePercent: 1.2 })
+  assert.deepEqual(state.range.value, [0, 5])
+  assert.equal(state.period.value, 5)
+  assert.equal(state.detailsOpen.value, true)
+})
+
+test('最近触发按日期优先，历史截止日含当日，手动选择隐藏最新数据且数据刷新保留视口', async t => {
+  const { state, data } = dashboard(t, [['2026-10-16', -2.31], ['2026-10-19', 3], ['2026-10-20', 1.2], ['2026-10-21', -2.5]])
+  state.selectedDay.value = '2026-10-20'
   assert.equal(state.amvCard.value.latest, null)
   assert.deepEqual(state.amvCard.value.trigger, { day: '2026-10-20', type: 'two-day-rise', changePercent: 4.2 })
   state.selectedDay.value = '2026-10-19'
@@ -138,14 +150,25 @@ test('阈值使用原有精度与算术和，严格边界不触发，同日下�
 })
 
 test('十进制算术和恰好4%不会因浮点误差触发，真实略超4%仍触发', async t => {
-  const { state, data } = dashboard(t, [['2026-10-19', -4.05], ['2026-10-20', 8.05]])
-  assert.deepEqual(state.amvCard.value.trigger, { day: '2026-10-19', type: 'daily-decline', changePercent: -4.05 })
-  data.value = { ...data.value, amv: [['2026-10-19', -4.05], ['2026-10-20', 8.050000000000002]] }
+  const { state, data } = dashboard(t, [['2026-10-19', 1.1], ['2026-10-20', 2.9]])
+  assert.equal(state.amvCard.value.trigger, null)
+  data.value = { ...data.value, amv: [['2026-10-19', 1.1], ['2026-10-20', 2.900000000000002]] }
   await nextTick()
   assert.deepEqual(state.amvCard.value.trigger, { day: '2026-10-20', type: 'two-day-rise', changePercent: 4.000000000000002 })
   data.value = { ...data.value, amv: [['2026-10-19', 1e-7], ['2026-10-20', 4]] }
   await nextTick()
   assert.deepEqual(state.amvCard.value.trigger, { day: '2026-10-20', type: 'two-day-rise', changePercent: 4.0000001 })
+})
+
+test('单日涨超4%单独触发，同日也满足两日条件时显示单日类型', async t => {
+  const { state, data } = dashboard(t, [['2026-10-20', 4]])
+  assert.equal(state.amvCard.value.trigger, null)
+  data.value = { ...data.value, amv: [['2026-10-20', 4.01]] }
+  await nextTick()
+  assert.deepEqual(state.amvCard.value.trigger, { day: '2026-10-20', type: 'daily-rise', changePercent: 4.01 })
+  data.value = { ...data.value, amv: [['2026-10-19', 3], ['2026-10-20', 5]] }
+  await nextTick()
+  assert.deepEqual(state.amvCard.value.trigger, { day: '2026-10-20', type: 'daily-rise', changePercent: 5 })
 })
 
 test('两日事件可跨周末和已确认休市日，不跨已知缺失交易日或未知工作日', async t => {
@@ -162,11 +185,11 @@ test('两日事件可跨周末和已确认休市日，不跨已知缺失交易�
   assert.equal(state.amvCard.value.trigger, null)
   data.value = { ...data.value, amv: [['2026-10-20', 5]] }
   await nextTick()
-  assert.equal(state.amvCard.value.trigger, null)
+  assert.deepEqual(state.amvCard.value.trigger, { day: '2026-10-20', type: 'daily-rise', changePercent: 5 })
 })
 
 test('四张卡片的可见文本区分主值、独立最新值、最近事件和历史无触发状态', async t => {
-  const { state } = dashboard(t, [['2026-10-19', 7], ['2026-10-20', -2.5], ['2026-10-21', 0]])
+  const { state, data } = dashboard(t, [['2026-10-19', 7], ['2026-10-20', -2.5], ['2026-10-21', 0]])
   const server = await createServer({ configFile: false, plugins: [vue()], server: { middlewareMode: true }, appType: 'custom' })
   t.after(() => server.close())
   const { default: MetricCards } = await server.ssrLoadModule('/src/components/MetricCards.vue')
@@ -174,14 +197,22 @@ test('四张卡片的可见文本区分主值、独立最新值、最近事件�
     point: state.metrics.value, amv: state.amvCard.value, amvStatus: '正在补采当日数据…',
   }) }))
   let html = await render()
+  const text = () => html.replace(/<[^>]*>/g, '')
   assert.equal((html.match(/class="metric-card(?:"| )/g) ?? []).length, 4)
   assert.match(html, /最新已收盘.*2026-10-21.*\+0\.00%/s)
-  assert.match(html, /2026-10-20.*单日跌破−2\.3%.*−2\.50%/s)
-  assert.doesNotMatch(html, /两日合计涨幅超过4%/)
+  assert.match(text(), /空：2026-10-20单日跌破−2\.3% · −2\.50%/)
+  assert.match(html, /amv-signal-short/)
+  assert.doesNotMatch(html, /最近触发：|<br|当日涨跌幅/)
   state.selectedDay.value = '2026-10-19'
   html = await render()
   assert.doesNotMatch(html, /最新已收盘|2026-10-21/)
-  assert.match(html, /截至2026-10-19的可用历史中暂无触发/)
+  assert.match(text(), /多：2026-10-19单日涨超4%/)
+  assert.match(html, /amv-signal-long/)
+  data.value = { ...data.value, amv: [['2026-10-19', 3], ['2026-10-20', 1.2]] }
+  state.selectedDay.value = '2026-10-20'
+  await nextTick()
+  html = await render()
+  assert.match(text(), /多：2026-10-20连续两日涨超4%/)
   state.selectedDay.value = '2026-10-12'
   html = await render()
   assert.match(html, /正在补采当日数据/)

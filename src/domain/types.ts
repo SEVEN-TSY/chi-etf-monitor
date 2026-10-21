@@ -9,7 +9,7 @@ export interface Payload {
 }
 export interface Observation { shares: number; status: string }
 export interface AmvObservation { day: string; changePercent: number }
-export interface AmvTrigger extends AmvObservation { type: 'daily-decline' | 'two-day-rise' }
+export interface AmvTrigger extends AmvObservation { type: 'daily-decline' | 'daily-rise' | 'two-day-rise' }
 export interface AmvCard {
   latest: AmvObservation | null
   latestTarget: string | null

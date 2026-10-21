@@ -45,6 +45,10 @@ export function createAmvCard(payload: Payload, selectedDay: string | null, now:
       card.trigger = { day, type: 'daily-decline', changePercent }
       break
     }
+    if (changePercent > 4) {
+      card.trigger = { day, type: 'daily-rise', changePercent }
+      break
+    }
     const previous = history[i - 1]
     if (previous && adjacent(previous[0], day)) {
       const sum = sumChanges(previous[1], changePercent)

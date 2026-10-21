@@ -4,7 +4,7 @@ import { createAmvCard } from '../domain/amv'
 import type { Payload, Preset, Range, RateKey } from '../domain/types'
 
 interface SavedState {
-  version: 1; selectedDay: string | null; period: number; fund: string
+  version: 1; period: number; fund: string
   preset: Preset; range: Range; visibleRates: RateKey[]; detailsOpen: boolean
 }
 interface WidgetBridge {
@@ -17,6 +17,7 @@ const isPreset = (v: unknown): v is Preset => ['1m', '3m', 'ytd', 'custom'].incl
 
 export function useDashboard(payload: MaybeRefOrGetter<Payload>) {
   const model = shallowReactive(createModel(toValue(payload)))
+  // 日期选择仅保留在本次页面会话中，刷新后回到默认浏览。
   const selectedDay = ref<string | null>(null)
   const period = ref(1)
   const fund = ref(model.funds[0]?.code ?? '')
@@ -31,7 +32,6 @@ export function useDashboard(payload: MaybeRefOrGetter<Payload>) {
     const s = value as Partial<SavedState>
     if (s.version !== 1) return
     restoring = true
-    selectedDay.value = typeof s.selectedDay === 'string' && model.dates.includes(s.selectedDay) ? s.selectedDay : null
     if (s.period && [1, 5, 20].includes(s.period)) period.value = s.period
     if (model.funds.some(f => f.code === s.fund)) fund.value = s.fund!
     if (isPreset(s.preset)) preset.value = s.preset
@@ -87,7 +87,7 @@ export function useDashboard(payload: MaybeRefOrGetter<Payload>) {
   })
   let timer: ReturnType<typeof setTimeout> | undefined
   function persist() {
-    const s: SavedState = { version: 1, selectedDay: selectedDay.value, period: period.value, fund: fund.value,
+    const s: SavedState = { version: 1, period: period.value, fund: fund.value,
       preset: preset.value, range: range.value, visibleRates: visibleRates.value, detailsOpen: detailsOpen.value }
     try { localStorage.setItem(storageKey, JSON.stringify(s)) } catch { /* Optional persistence. */ }
     window.openai?.setWidgetState?.({ privateContent: { frontend: s }, modelContent: { day: model.latest, selectedDay: selectedDay.value,
