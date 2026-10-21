@@ -105,10 +105,60 @@ test('补采失败保留ETF数据并限频，非法日期不执行采集', async
   const app = createApi(path, async () => { calls++; throw new Error('timeout') })
   const request = (day: string) => app.request('/api/amv/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ day }) })
   assert.equal((await request('2026-02-30')).status, 400)
-  assert.equal((await request('2026-10-19')).status, 400)
+  assert.equal((await request('not-a-date')).status, 400)
   assert.equal(calls, 0)
   assert.equal((await (await request('2026-10-20')).json()).status, 'unavailable')
   assert.equal((await (await request('2026-10-20')).json()).status, 'unavailable')
   assert.equal(calls, 1)
   assert.equal((await app.request('/api/dashboard')).status, 200)
+})
+
+test('无同日ETF记录的最新已收盘0AMV可补采、独立读取并刷新ETag，返回日期不冒充目标日', async t => {
+  const { path } = fixture(t)
+  const now = () => new Date('2026-10-21T08:00:00Z')
+  const app = createApi(path, async databasePath => {
+    const writer = new DatabaseSync(databasePath)
+    try {
+      writer.exec(`CREATE TABLE IF NOT EXISTS amv_observations(day TEXT PRIMARY KEY,change_percent REAL);
+        INSERT OR REPLACE INTO amv_observations VALUES('2026-10-21',0)`)
+    } finally { writer.close() }
+  }, now)
+  const before = await app.request('/api/dashboard')
+  const request = (day: string) => app.request('/api/amv/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ day }) })
+  assert.equal((await (await request('2026-10-21')).json()).status, 'ready')
+  const updated = await app.request('/api/dashboard', { headers: { 'If-None-Match': before.headers.get('ETag')! } })
+  assert.equal(updated.status, 200)
+  const data = await updated.json()
+  assert.deepEqual(data.amv, [['2026-10-21', 0]])
+  assert.equal(data.rows.at(-1)[0], '2026-10-20')
+  assert.equal((await (await request('2026-10-19')).json()).status, 'unavailable')
+  assert.deepEqual((await (await app.request('/api/dashboard')).json()).amv, [['2026-10-21', 0]])
+})
+
+test('按北京时间收盘限制独立日期补采，未发布和失败均保留旧数据并等待限频到期', async t => {
+  const { path } = fixture(t)
+  let now = new Date('2026-10-21T06:59:00Z')
+  let calls = 0
+  const app = createApi(path, async () => { calls++; if (calls === 2) throw new Error('行情超时') }, () => now)
+  const writer = new DatabaseSync(path)
+  try {
+    writer.exec(`CREATE TABLE amv_observations(day TEXT PRIMARY KEY,change_percent REAL);
+      INSERT INTO amv_observations VALUES('2026-10-20',0.36)`)
+  } finally { writer.close() }
+  const initial = await app.request('/api/dashboard')
+  const request = (day = '2026-10-21') => app.request('/api/amv/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ day }) })
+  assert.equal((await (await request()).json()).status, 'pending')
+  assert.equal((await (await request('2026-10-22')).json()).status, 'pending')
+  assert.equal(calls, 0)
+  now = new Date('2026-10-21T07:00:00Z')
+  assert.match((await (await request()).json()).message, /尚未返回/)
+  assert.equal((await (await request()).json()).retryAfter, 300)
+  assert.equal(calls, 1)
+  now = new Date('2026-10-21T07:05:01Z')
+  assert.match((await (await request()).json()).message, /补采失败/)
+  assert.equal((await (await request()).json()).status, 'unavailable')
+  assert.equal(calls, 2)
+  const cached = await app.request('/api/dashboard')
+  assert.deepEqual((await cached.json()).amv, [['2026-10-20', .36]])
+  assert.equal((await app.request('/api/dashboard', { headers: { 'If-None-Match': initial.headers.get('ETag')! } })).status, 304)
 })

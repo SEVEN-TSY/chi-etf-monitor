@@ -1,5 +1,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, shallowReactive, toValue, watch, type MaybeRefOrGetter } from 'vue'
 import { constrainRange, createModel, presetRange } from '../domain/model'
+import { createAmvCard } from '../domain/amv'
 import type { Payload, Preset, Range, RateKey } from '../domain/types'
 
 interface SavedState {
@@ -23,6 +24,7 @@ export function useDashboard(payload: MaybeRefOrGetter<Payload>) {
   const range = ref<Range>(presetRange(model.dates, '1m'))
   const visibleRates = ref<RateKey[]>(['rate', 'rate5', 'rate20'])
   const detailsOpen = ref(false)
+  const now = ref(new Date())
   let restoring = false
   function restore(value: unknown) {
     if (!value || typeof value !== 'object') return
@@ -43,7 +45,16 @@ export function useDashboard(payload: MaybeRefOrGetter<Payload>) {
   }
   try { restore(window.openai?.widgetState?.privateContent?.frontend ?? JSON.parse(localStorage.getItem(storageKey) ?? 'null')) } catch { /* Storage may be unavailable in embedded previews. */ }
   const visiblePoints = computed(() => model.points.slice(Math.ceil(range.value[0]), Math.floor(range.value[1]) + 1))
-  const metrics = computed(() => visiblePoints.value.find(p => p.day === selectedDay.value) ?? visiblePoints.value.at(-1))
+  const metrics = computed(() => selectedDay.value
+    ? model.points.find(p => p.day === selectedDay.value) : visiblePoints.value.at(-1))
+  const amvCard = computed(() => createAmvCard(toValue(payload), selectedDay.value, now.value))
+  const amvSyncTargets = computed(() => {
+    const days = new Set<string>()
+    if (metrics.value?.amv == null && metrics.value?.day) days.add(metrics.value.day)
+    const latest = amvCard.value.latestTarget
+    if (latest && !(toValue(payload).amv ?? []).some(([day]) => day === latest)) days.add(latest)
+    return [...days]
+  })
   const detailDay = computed(() => selectedDay.value ?? model.latest)
   const detailIndex = computed(() => model.dates.indexOf(detailDay.value))
   const historyDays = computed(() => model.dates.slice(0, detailIndex.value + 1))
@@ -91,11 +102,16 @@ export function useDashboard(payload: MaybeRefOrGetter<Payload>) {
     clearTimeout(timer)
     timer = setTimeout(persist, 180)
   }, { flush: 'sync' })
-  onMounted(() => window.addEventListener('openai:set_globals', onGlobals))
+  let clockTimer: ReturnType<typeof setInterval> | undefined
+  onMounted(() => {
+    window.addEventListener('openai:set_globals', onGlobals)
+    clockTimer = setInterval(() => { now.value = new Date() }, 60000)
+  })
   onBeforeUnmount(() => {
     clearTimeout(timer)
+    clearInterval(clockTimer)
     window.removeEventListener('openai:set_globals', onGlobals)
   })
   return { model, selectedDay, period, fund, preset, range, visibleRates, detailsOpen, visiblePoints,
-    metrics, detailDay, detailIndex, historyDays, selectedFund, comparisons, setPreset, setRange, toggleRate }
+    metrics, amvCard, amvSyncTargets, detailDay, detailIndex, historyDays, selectedFund, comparisons, setPreset, setRange, toggleRate }
 }

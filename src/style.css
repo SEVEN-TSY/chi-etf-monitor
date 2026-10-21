@@ -40,6 +40,8 @@ html.etf-embedded #etf-app .page-header { padding-right: 90px; }
 #etf-app .metric-card strong { font-size: clamp(23px, 2.4vw, 30px); white-space: nowrap; }
 #etf-app .metric-card strong small { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 5px; }
 #etf-app .metric-card p { font-size: 12px; color: var(--muted); margin: 8px 0 0; overflow-wrap: anywhere; }
+#etf-app .metric-card .amv-note { font-size: 11px; }
+#etf-app .amv-pending { display: block; margin-top: 3px; }
 #etf-app .activity-value { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 #etf-app .activity-label { font-size: 11px; color: var(--muted); }
 #etf-app .metric-unusual { border-color: var(--series-6); }

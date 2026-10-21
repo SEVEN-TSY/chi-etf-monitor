@@ -6,11 +6,11 @@ import { dashboardRoutes } from './routes/dashboard.ts'
 import { amvRoutes } from './routes/amv.ts'
 import { createAmvSyncService, type AmvCollector } from './services/amvSyncService.ts'
 
-export function createApi(databasePath: string, collectAmv?: AmvCollector) {
+export function createApi(databasePath: string, collectAmv?: AmvCollector, clock?: () => Date) {
   const database = createReadDatabase(databasePath)
   const repository = createEtfRepository(database)
   const dashboard = createDashboardService(repository)
-  const amv = createAmvSyncService(repository, databasePath, collectAmv)
+  const amv = createAmvSyncService(repository, databasePath, collectAmv, clock)
   const app = new Hono()
   app.use('/api/*', async (c, next) => {
     c.header('Cache-Control', 'no-cache')

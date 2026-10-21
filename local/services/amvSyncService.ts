@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import type { EtfRepository } from '../repositories/etfRepository.ts'
+import { amvDates } from '../../src/domain/amv.ts'
 
 const execute = promisify(execFile)
 export type AmvCollector = (databasePath: string, day: string) => Promise<void>
@@ -29,13 +30,11 @@ export function createAmvSyncService(repository: EtfRepository, databasePath: st
   return {
     async ensure(day: string): Promise<AmvSyncResult> {
       const snapshot = repository.readSnapshot()
-      if (!snapshot.observations.some(r => r.day === day)) return { status: 'invalid', message: '请选择已有ETF数据的交易日' }
-      if (snapshot.amv.some(r => r.day === day)) return { status: 'ready' }
       const now = clock()
-      const beijing = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }).format(now)
-      if (day > beijing.slice(0, 10) || day === beijing.slice(0, 10) && Number(beijing.slice(11, 13)) < 15) {
+      if (day > amvDates(now).latestClosed) {
         return { status: 'pending', message: '待当日收盘后补采', retryAfter: 60 }
       }
+      if (snapshot.amv.some(r => r.day === day)) return { status: 'ready' }
       if (active) return active.day === day ? active.promise : { status: 'pending', message: '等待0AMV补采', retryAfter: 10 }
       const retry = retries.get(day) ?? 0
       if (retry > now.getTime()) return { status: 'unavailable', message: '当日数据暂缺，稍后自动重试', retryAfter: Math.ceil((retry - now.getTime()) / 1000) }

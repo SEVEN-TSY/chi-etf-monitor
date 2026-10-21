@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { colors, number, percent, signed } from '../domain/format'
-import type { Point } from '../domain/types'
-defineProps<{ point?: Point; amvStatus?: string }>()
+import type { AmvCard, Point } from '../domain/types'
+defineProps<{ point?: Point; amv?: AmvCard; amvStatus?: string; latestAmvStatus?: string }>()
 function trend(value: number | null | undefined) {
   return value == null || value === 0 ? 'var(--text)' : value > 0 ? colors[0] : colors[1]
 }
@@ -30,6 +30,15 @@ function activity(point?: Point) {
       <span>活跃市值·0AMV</span>
       <strong :style="{ color: trend(point?.amv) }">{{ percent(point?.amv) }}</strong>
       <p>{{ point?.amv == null ? (amvStatus || '暂无当日数据') : '当日涨跌幅' }}</p>
+      <p v-if="amv?.latestTarget" class="amv-note">
+        <template v-if="amv.latest">最新已收盘：{{ amv.latest.day }} {{ percent(amv.latest.changePercent) }}</template>
+        <template v-else>最新已收盘：暂无可用数据</template>
+        <span v-if="amv.latest?.day !== amv.latestTarget" class="amv-pending">{{ amv.latestTarget }}：{{ latestAmvStatus || '暂无当日数据' }}</span>
+      </p>
+      <p v-if="amv" class="amv-note">
+        <template v-if="amv.trigger">最近触发：{{ amv.trigger.day }}<br>{{ amv.trigger.type === 'daily-decline' ? '单日跌破−2.3%' : '两日合计涨幅超过4%' }} · {{ percent(amv.trigger.changePercent) }}</template>
+        <template v-else>截至{{ amv.cutoff }}的可用历史中暂无触发</template>
+      </p>
       <i :style="{ background: colors[3] }"></i>
     </div>
     <div class="metric-card" :class="{ 'metric-unusual': point?.grossRate != null && point.grossRate > 0 && point.anomalyPercentile != null && point.anomalyPercentile >= 95 }">
