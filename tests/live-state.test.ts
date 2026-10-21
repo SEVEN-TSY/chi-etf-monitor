@@ -24,12 +24,14 @@ test('数据库刷新更新计算结果，同时保留选择日期、比较区�
     updated.rows[10]![2] = 222e8
     updated.rows.push(['2026-01-26', '510300', 150e8, '清算后'])
     updated.checked.push('2026-01-26')
+    updated.amv = [[days[10]!, -.39], ['2026-01-26', 1.2]]
     data.value = updated
     await nextTick()
     assert.equal(state!.model.points[10]!.total, 222)
     assert.equal(state!.model.latest, '2026-01-26')
     assert.equal(state!.selectedDay.value, days[10])
     assert.equal(state!.metrics.value?.total, 222)
+    assert.equal(state!.metrics.value?.amv, -.39)
     assert.deepEqual(state!.range.value, [4, 20])
     assert.equal(state!.period.value, 5)
     assert.equal(state!.detailsOpen.value, true)

@@ -4,6 +4,7 @@ export function createModel(payload: Payload) {
   const dates = [...new Set(payload.rows.map(r => r[0]))].sort()
   const records = new Map(payload.rows.map(([day, code, shares, status]) => [day + ':' + code, { shares: shares / 1e8, status }]))
   const checked = new Set(payload.checked)
+  const amv = new Map(payload.amv ?? [])
   const observation = (day: string, code: string) => records.get(day + ':' + code)
   const final = (row: Observation | undefined): row is Observation => !!row && row.status !== '待早间复核'
   function hasGap(from: string, to: string) {
@@ -28,10 +29,30 @@ export function createModel(payload: Payload) {
     const changes = payload.funds.map(f => interval(f.code, i, 1))
     const delta = changes.every(c => c !== null) ? changes.reduce((n, c) => n + c.delta, 0) : null
     const prior = total !== null && delta !== null ? total - delta : null
+    const breadth = { up: 0, down: 0, unchanged: 0, missing: 0, total: payload.funds.length }
+    for (const change of changes) {
+      if (change === null) breadth.missing++
+      else if (change.delta > 0) breadth.up++
+      else if (change.delta < 0) breadth.down++
+      else breadth.unchanged++
+    }
+    const grossRate = prior !== null && prior > 0 && changes.every(c => c !== null)
+      ? changes.reduce((n, c) => n + Math.abs(c.delta), 0) / prior * 100 : null
     return { day, i, total, delta, rate: prior !== null && prior > 0 && delta !== null ? delta / prior * 100 : null,
-      rate5: null, rate20: null, parts: Object.fromEntries(payload.funds.map((f, j) => [f.code, total === null ? null : rows[j]!.shares])) }
+      rate5: null, rate20: null, rateChange: null, amv: amv.get(day) ?? null,
+      grossRate, anomalyPercentile: null, breadth,
+      parts: Object.fromEntries(payload.funds.map((f, j) => [f.code, total === null ? null : rows[j]!.shares])) }
   })
   points.forEach((p, i) => {
+    const previousRate = points[i - 1]?.rate
+    p.rateChange = p.rate !== null && previousRate != null ? p.rate - previousRate : null
+    const baseline = points.slice(Math.max(0, i - 60), i)
+    if (p.grossRate !== null && baseline.length === 60 && baseline.every(x => x.grossRate !== null)) {
+      // 并列值取中间排名；连续持平不会被标成异常放量。只使用所选日之前的数据。
+      const lower = baseline.filter(x => x.grossRate! < p.grossRate!).length
+      const equal = baseline.filter(x => x.grossRate === p.grossRate).length
+      p.anomalyPercentile = (lower + equal * .5) / 60 * 100
+    }
     for (const count of [5, 20] as const) {
       const window = points.slice(Math.max(0, i - count + 1), i + 1)
       p[count === 5 ? 'rate5' : 'rate20'] = window.length === count && window.every(x => x.rate !== null)

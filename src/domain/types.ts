@@ -5,12 +5,16 @@ export interface Payload {
   checked: string[]
   fetched: string | null
   generated: string
+  amv?: [day: string, changePercent: number][]
 }
 export interface Observation { shares: number; status: string }
 export interface Change { delta: number; rate: number | null; start: string }
 export interface Point {
   day: string; i: number; total: number | null; delta: number | null
   rate: number | null; rate5: number | null; rate20: number | null
+  rateChange: number | null; amv: number | null
+  grossRate: number | null; anomalyPercentile: number | null
+  breadth: { up: number; down: number; unchanged: number; missing: number; total: number }
   parts: Record<string, number | null>
 }
 export type RateKey = 'rate' | 'rate5' | 'rate20'

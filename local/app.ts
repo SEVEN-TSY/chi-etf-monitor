@@ -3,11 +3,14 @@ import { createReadDatabase, DatabaseUnavailableError } from './db/connection.ts
 import { createEtfRepository } from './repositories/etfRepository.ts'
 import { createDashboardService } from './services/dashboardService.ts'
 import { dashboardRoutes } from './routes/dashboard.ts'
+import { amvRoutes } from './routes/amv.ts'
+import { createAmvSyncService, type AmvCollector } from './services/amvSyncService.ts'
 
-export function createApi(databasePath: string) {
+export function createApi(databasePath: string, collectAmv?: AmvCollector) {
   const database = createReadDatabase(databasePath)
   const repository = createEtfRepository(database)
   const dashboard = createDashboardService(repository)
+  const amv = createAmvSyncService(repository, databasePath, collectAmv)
   const app = new Hono()
   app.use('/api/*', async (c, next) => {
     c.header('Cache-Control', 'no-cache')
@@ -19,5 +22,5 @@ export function createApi(databasePath: string) {
     return c.json({ error: '读取数据失败，请稍后重试。' }, 500)
   })
   app.notFound(c => c.json({ error: '接口不存在' }, 404))
-  return app.route('/api', dashboardRoutes(dashboard))
+  return app.route('/api', dashboardRoutes(dashboard)).route('/api', amvRoutes(amv))
 }

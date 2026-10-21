@@ -3,14 +3,17 @@ import { computed } from 'vue'
 import type { ChartSeries, Payload, RateKey, TooltipRow } from './domain/types'
 import { colors, number, percent, rates, signed } from './domain/format'
 import { useDashboard } from './composables/useDashboard'
+import { useAmvSync } from './composables/useAmvSync'
 import MetricCards from './components/MetricCards.vue'
 import TimeChart from './components/TimeChart.vue'
 import TimeNavigator from './components/TimeNavigator.vue'
 import FundComparison from './components/FundComparison.vue'
 import ChartLegend from './components/ChartLegend.vue'
 const props = defineProps<{ data: Payload }>()
+const emit = defineEmits<{ refresh: [] }>()
 const { model, selectedDay, period, fund, preset, range, visibleRates, detailsOpen, visiblePoints, metrics,
   detailDay, historyDays, selectedFund, comparisons, setPreset, setRange, toggleRate } = useDashboard(() => props.data)
+const { status: amvStatus } = useAmvSync(metrics, () => emit('refresh'))
 const stack = computed<ChartSeries[]>(() => model.funds.map((f, i) => ({ key: f.code, label: f.short, color: colors[i]!,
   kind: 'area', values: model.points.map(p => p.parts[f.code] ?? null) })))
 const rateSeries = computed<ChartSeries[]>(() => rates.filter(r => visibleRates.value.includes(r.key)).map(r => ({ ...r, values: model.points.map(p => p[r.key]) })))
@@ -48,7 +51,7 @@ const shortcuts = [{ key: '1m', label: '近1月' }, { key: '3m', label: '近3月
       <div class="data-date" aria-live="polite"><span class="status-dot"></span>数据日期：{{ metrics?.day ?? '—' }}</div>
     </header>
     <template v-if="model.dates.length">
-      <MetricCards :point="metrics" />
+      <MetricCards :point="metrics" :amv-status="amvStatus" />
       <section class="panel" aria-labelledby="total-heading">
         <div class="panel-header"><h2 id="total-heading">总份额</h2><div class="range-presets" aria-label="时间范围">
           <button v-for="shortcut in shortcuts" :key="shortcut.key" type="button" :aria-pressed="preset === shortcut.key" @click="setPreset(shortcut.key)">{{ shortcut.label }}</button>
@@ -82,6 +85,6 @@ const shortcuts = [{ key: '1m', label: '近1月' }, { key: '3m', label: '近3月
       </section>
     </template>
     <div v-else class="panel" role="status">尚无份额记录，请先运行数据采集。</div>
-    <footer class="page-footer"><span>采集：{{ (data.fetched ?? data.generated).slice(0, 16).replace('T', ' ') }} 北京时间</span><span>来源：<a href="https://www.sse.com.cn/market/funddata/volumn/etfvolumn/" target="_blank" rel="noreferrer">上交所</a> · <a href="https://www.szse.cn/market/fund/volume/etf/index.html" target="_blank" rel="noreferrer">深交所</a></span></footer>
+    <footer class="page-footer"><span>采集：{{ (data.fetched ?? data.generated).slice(0, 16).replace('T', ' ') }} 北京时间</span><span>来源：<a href="https://www.sse.com.cn/market/funddata/volumn/etfvolumn/" target="_blank" rel="noreferrer">上交所</a> · <a href="https://www.szse.cn/market/fund/volume/etf/index.html" target="_blank" rel="noreferrer">深交所</a> · 指南针0AMV</span></footer>
   </main>
 </template>

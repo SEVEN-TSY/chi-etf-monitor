@@ -32,11 +32,19 @@ html.etf-embedded #etf-app .page-header { padding-right: 90px; }
 #etf-app .page-header p { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
 #etf-app .data-date { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); font-size: 13px; margin-left: auto; white-space: nowrap; }
 #etf-app .status-dot { width: 6px; height: 6px; background: var(--series-1); border-radius: 50%; box-shadow: 0 0 10px color-mix(in srgb, var(--series-1) 30%, transparent); }
-#etf-app .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
+#etf-app .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
 #etf-app .metric-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; position: relative; overflow: hidden; }
 #etf-app .metric-card > span { color: var(--muted); font-size: 13px; }
 #etf-app .metric-card strong { display: block; font-size: 30px; line-height: 1.35; font-weight: 600; margin-top: 5px; }
 #etf-app .metric-card > i { position: absolute; left: 0; top: 22px; height: 34px; width: 3px; border-radius: 0 2px 2px 0; }
+#etf-app .metric-card strong { font-size: clamp(23px, 2.4vw, 30px); white-space: nowrap; }
+#etf-app .metric-card strong small { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 5px; }
+#etf-app .metric-card p { font-size: 12px; color: var(--muted); margin: 8px 0 0; overflow-wrap: anywhere; }
+#etf-app .activity-value { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+#etf-app .activity-label { font-size: 11px; color: var(--muted); }
+#etf-app .metric-unusual { border-color: var(--series-6); }
+#etf-app .metric-unusual .activity-label { color: var(--series-6); }
+#etf-app .breadth { display: flex; flex-wrap: wrap; gap: 3px 10px; font-size: 11px; color: var(--muted); margin-top: 8px; }
 #etf-app .panel { padding: 20px 24px 18px; margin-bottom: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); min-width: 0; }
 #etf-app .panel-header { display: flex; justify-content: space-between; align-items: center; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 12px; }
 #etf-app h2 { margin: 0; font-size: 16px; font-weight: 600; }
@@ -87,6 +95,7 @@ html.etf-embedded #etf-app .page-header { padding-right: 90px; }
 #etf-app .connection-message { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; max-width: 1216px; margin: 18px auto; padding: 12px 16px; color: var(--muted); font-size: 13px; }
 #etf-app .connection-message button { border: 1px solid var(--line); border-radius: 5px; background: var(--surface); padding: 3px 10px; }
 @media (max-width: 800px) {
+  #etf-app .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #etf-app .etf-dashboard { padding: 20px 16px; }
   #etf-app .panel { padding: 16px; }
   #etf-app .chart-legend { gap: 9px; }
