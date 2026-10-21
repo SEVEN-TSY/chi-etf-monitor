@@ -41,7 +41,11 @@ html.etf-embedded #etf-app .page-header { padding-right: 90px; }
 #etf-app .metric-card strong small { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 5px; }
 #etf-app .metric-card p { font-size: 12px; color: var(--muted); margin: 8px 0 0; overflow-wrap: anywhere; }
 #etf-app .metric-card .amv-note { font-size: 11px; }
-#etf-app .amv-pending { display: block; margin-top: 3px; }
+#etf-app .amv-heading { position: relative; height: 54px; }
+#etf-app .amv-title { display: block; max-width: calc(100% - 108px); color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+#etf-app .metric-card .amv-latest { position: absolute; top: 0; right: 0; width: 100px; margin: 0; text-align: right; font-size: 10px; line-height: 13px; }
+#etf-app .amv-latest > span { display: block; }
+#etf-app .amv-latest-status { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #etf-app .metric-card .amv-signal { display: flex; align-items: baseline; padding: 8px; border: 1px solid color-mix(in srgb, currentColor 35%, transparent); border-radius: 7px; background: color-mix(in srgb, currentColor 9%, transparent); font-weight: 600; }
 #etf-app .metric-card .amv-signal-long { color: light-dark(#b42318, #ff8a80); }
 #etf-app .metric-card .amv-signal-short { color: light-dark(#087443, #69e6a7); }

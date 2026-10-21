@@ -27,14 +27,17 @@ function activity(point?: Point) {
       <i :style="{ background: colors[2] }"></i>
     </div>
     <div class="metric-card">
-      <span>活跃市值·0AMV</span>
+      <div class="amv-heading">
+        <span class="amv-title">活跃市值·0AMV</span>
+        <p v-if="amv?.latestTarget" class="amv-latest">
+          <span>最新已收盘</span>
+          <template v-if="amv.latest"><span>{{ amv.latest.day }}</span><span>{{ percent(amv.latest.changePercent) }}</span></template>
+          <span v-else>暂无可用数据</span>
+          <span v-if="amv.latest?.day !== amv.latestTarget" class="amv-latest-status" :title="amv.latestTarget + '：' + (latestAmvStatus || '暂无当日数据')">{{ latestAmvStatus || '暂无当日数据' }}</span>
+        </p>
+      </div>
       <strong :style="{ color: trend(point?.amv) }">{{ percent(point?.amv) }}</strong>
       <p v-if="point?.amv == null">{{ amvStatus || '暂无当日数据' }}</p>
-      <p v-if="amv?.latestTarget" class="amv-note">
-        <template v-if="amv.latest">最新已收盘：{{ amv.latest.day }} {{ percent(amv.latest.changePercent) }}</template>
-        <template v-else>最新已收盘：暂无可用数据</template>
-        <span v-if="amv.latest?.day !== amv.latestTarget" class="amv-pending">{{ amv.latestTarget }}：{{ latestAmvStatus || '暂无当日数据' }}</span>
-      </p>
       <p v-if="amv?.trigger" class="amv-signal" :class="amv.trigger.type === 'daily-decline' ? 'amv-signal-short' : 'amv-signal-long'">
         <b class="amv-signal-label">{{ amv.trigger.type === 'daily-decline' ? '空：' : '多：' }}</b>
         <span>{{ amv.trigger.day }}{{ amv.trigger.type === 'daily-decline' ? '单日跌破−2.3%' : amv.trigger.type === 'daily-rise' ? '单日涨超4%' : '连续两日涨超4%' }}<template v-if="amv.trigger.type === 'daily-decline'"> · {{ percent(amv.trigger.changePercent) }}</template></span>
