@@ -117,6 +117,31 @@ test('刷新页面忽略已保存的选中日期，恢复默认浏览并保留�
   assert.equal(state.detailsOpen.value, true)
 })
 
+test('取消选择并回到最新日期时平移历史窗口，保留窗口跨度和其他偏好', t => {
+  const { state } = dashboard(t, [['2026-10-20', .36], ['2026-10-21', 1.2]])
+  state.setRange([0, 5])
+  state.selectedDay.value = '2026-10-12'
+  state.period.value = 5
+  state.detailsOpen.value = true
+  state.returnToLatest()
+  assert.equal(state.selectedDay.value, null)
+  assert.deepEqual(state.range.value, [1, 6])
+  assert.equal(state.metrics.value?.day, '2026-10-20')
+  assert.equal(state.detailDay.value, '2026-10-20')
+  assert.deepEqual(state.amvCard.value.latest, { day: '2026-10-21', changePercent: 1.2 })
+  assert.equal(state.period.value, 5)
+  assert.equal(state.detailsOpen.value, true)
+  state.setRange([0, 5])
+  state.returnToLatest()
+  assert.deepEqual(state.range.value, [1, 6])
+  state.setPreset('3m')
+  state.selectedDay.value = '2026-10-12'
+  state.returnToLatest()
+  assert.equal(state.selectedDay.value, null)
+  assert.equal(state.preset.value, '3m')
+  assert.equal(state.metrics.value?.day, '2026-10-20')
+})
+
 test('最近触发按日期优先，历史截止日含当日，手动选择隐藏最新数据且数据刷新保留视口', async t => {
   const { state, data } = dashboard(t, [['2026-10-16', -2.31], ['2026-10-19', 3], ['2026-10-20', 1.2], ['2026-10-21', -2.5]])
   state.selectedDay.value = '2026-10-20'

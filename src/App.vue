@@ -12,7 +12,7 @@ import ChartLegend from './components/ChartLegend.vue'
 const props = defineProps<{ data: Payload }>()
 const emit = defineEmits<{ refresh: [] }>()
 const { model, selectedDay, period, fund, preset, range, visibleRates, detailsOpen, visiblePoints, metrics,
-  amvCard, amvSyncTargets, detailDay, historyDays, selectedFund, comparisons, setPreset, setRange, toggleRate } = useDashboard(() => props.data)
+  amvCard, amvSyncTargets, detailDay, historyDays, selectedFund, comparisons, setPreset, setRange, returnToLatest, toggleRate } = useDashboard(() => props.data)
 const { statuses: amvStatuses } = useAmvSync(amvSyncTargets, () => emit('refresh'))
 const stack = computed<ChartSeries[]>(() => model.funds.map((f, i) => ({ key: f.code, label: f.short, color: colors[i]!,
   kind: 'area', values: model.points.map(p => p.parts[f.code] ?? null) })))
@@ -56,12 +56,12 @@ const shortcuts = [{ key: '1m', label: '近1月' }, { key: '3m', label: '近3月
         <div class="panel-header"><h2 id="total-heading">总份额</h2><div class="range-presets" aria-label="时间范围">
           <button v-for="shortcut in shortcuts" :key="shortcut.key" type="button" :aria-pressed="preset === shortcut.key" @click="setPreset(shortcut.key)">{{ shortcut.label }}</button>
         </div></div>
-        <TimeChart :dates="model.dates" :series="stack" :range="range" :selected-day="selectedDay" stacked pannable :height="310" label="8只ETF每日总份额堆叠面积图" unit="总份额（亿份）" :tooltip="totalTooltip" @select="selectedDay = $event" @pan="setRange" />
+        <TimeChart :dates="model.dates" :series="stack" :range="range" :selected-day="selectedDay" stacked pannable :height="310" label="8只ETF每日总份额堆叠面积图" unit="总份额（亿份）" :tooltip="totalTooltip" @select="selectedDay = $event" @pan="setRange" @reset="returnToLatest" />
         <ChartLegend :items="stack" />
       </section>
       <section class="panel" aria-labelledby="rate-heading">
         <div class="panel-header"><h2 id="rate-heading">增减率</h2></div>
-        <TimeChart :dates="model.dates" :series="rateSeries" :range="range" :selected-day="selectedDay" pannable zero :height="270" label="总份额单日增减率及5日、20日均线" unit="份额增减率（%）" :tooltip="rateTooltip" @select="selectedDay = $event" @pan="setRange" />
+        <TimeChart :dates="model.dates" :series="rateSeries" :range="range" :selected-day="selectedDay" pannable zero :height="270" label="总份额单日增减率及5日、20日均线" unit="份额增减率（%）" :tooltip="rateTooltip" @select="selectedDay = $event" @pan="setRange" @reset="returnToLatest" />
         <ChartLegend :items="[...rates]" :active="visibleRates" @toggle="toggleRate($event as RateKey)" />
       </section>
       <section class="panel navigator-panel" aria-labelledby="range-heading">
@@ -79,7 +79,7 @@ const shortcuts = [{ key: '1m', label: '近1月' }, { key: '3m', label: '近3月
           <FundComparison :values="comparisons" :day="detailDay" @select="fund = $event" />
           <ChartLegend :items="[{ key: 'up', label: '份额增加', color: colors[0]! }, { key: 'down', label: '份额减少', color: colors[1]! }]" />
           <div class="history-header"><h3>{{ selectedFund.name }}</h3><label>历史走势<select v-model="fund" aria-label="历史走势ETF"><option v-for="f in model.funds" :key="f.code" :value="f.code">{{ f.name }} {{ f.code }}</option></select></label></div>
-          <TimeChart :dates="historyDays" :series="history" :range="[0, Math.max(0, historyDays.length-1)]" :height="320" :label="selectedFund.name + '总份额与每日增减'" unit="总份额（亿份）" secondary-unit="每日增减（亿份）" :tooltip="historyTooltip" />
+          <TimeChart :dates="historyDays" :series="history" :range="[0, Math.max(0, historyDays.length-1)]" :height="320" :label="selectedFund.name + '总份额与每日增减'" unit="总份额（亿份）" secondary-unit="每日增减（亿份）" :tooltip="historyTooltip" @reset="returnToLatest" />
           <ChartLegend :items="historyLegend" />
         </div>
       </section>

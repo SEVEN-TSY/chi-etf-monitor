@@ -68,6 +68,14 @@ export function useDashboard(payload: MaybeRefOrGetter<Payload>) {
     preset.value = 'custom'
     range.value = constrainRange(value, model.dates.length - 1)
   }
+  function returnToLatest() {
+    selectedDay.value = null
+    if (preset.value !== 'custom') range.value = presetRange(model.dates, preset.value)
+    else {
+      const last = Math.max(0, model.dates.length - 1)
+      range.value = constrainRange([last - (range.value[1] - range.value[0]), last], last)
+    }
+  }
   function toggleRate(key: RateKey) {
     if (!visibleRates.value.includes(key)) visibleRates.value = [...visibleRates.value, key]
     else if (visibleRates.value.length > 1) visibleRates.value = visibleRates.value.filter(k => k !== key)
@@ -113,5 +121,5 @@ export function useDashboard(payload: MaybeRefOrGetter<Payload>) {
     window.removeEventListener('openai:set_globals', onGlobals)
   })
   return { model, selectedDay, period, fund, preset, range, visibleRates, detailsOpen, visiblePoints,
-    metrics, amvCard, amvSyncTargets, detailDay, detailIndex, historyDays, selectedFund, comparisons, setPreset, setRange, toggleRate }
+    metrics, amvCard, amvSyncTargets, detailDay, detailIndex, historyDays, selectedFund, comparisons, setPreset, setRange, returnToLatest, toggleRate }
 }

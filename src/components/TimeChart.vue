@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<{
   selectedDay?: string | null; stacked?: boolean; secondaryUnit?: string; height?: number
   tooltip: (index: number) => TooltipRow[]; pannable?: boolean; zero?: boolean
 }>(), { height: 290 })
-const emit = defineEmits<{ select: [day: string]; pan: [range: Range] }>()
+const emit = defineEmits<{ select: [day: string]; pan: [range: Range]; reset: [] }>()
 const element = ref<HTMLElement | null>(null)
 const width = useElementWidth(element)
 const clipId = 'clip-' + useId().replace(/:/g, '')
@@ -95,6 +95,10 @@ function click(event: MouseEvent) {
   const day = props.dates[hover.value!.index]
   if (day) emit('select', day)
 }
+function reset() {
+  hover.value = null
+  emit('reset')
+}
 function outside(event: Event) {
   if (!element.value?.contains(event.target as Node)) hover.value = null
 }
@@ -111,7 +115,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', outside))
 const tick = (value: number) => Math.abs(value) >= 100 ? number(value, 0) : number(value, 2).replace(/\.?0+$/, '')
 </script>
 <template>
-  <div ref="element" class="time-chart" @keydown="keyboard">
+  <div ref="element" class="time-chart" @keydown="keyboard" @dblclick.prevent="reset">
     <svg :viewBox="`0 0 ${width} ${chartHeight}`" :height="chartHeight" class="plot-svg" role="img" :aria-label="label" tabindex="0">
       <defs><clipPath :id="clipId"><rect :x="left" :y="top" :width="right-left" :height="bottom-top" /></clipPath></defs>
       <text :x="left" y="15" class="axis-unit">{{ unit }}</text>
