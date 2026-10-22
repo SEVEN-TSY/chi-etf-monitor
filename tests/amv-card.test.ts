@@ -40,7 +40,7 @@ function dashboard(t: TestContext, amv: NonNullable<Payload['amv']>, savedDay: s
   return { state, data, sync }
 }
 
-test('0AMV默认主值跟随视口末日，独立最新数据不受ETF末日限制；历史选择移出视口也不变', t => {
+test('ETF指标跟随视口末日，0AMV独立最新数据不受ETF末日限制；历史选择移出视口也不变', t => {
   const { state } = dashboard(t, [['2026-10-12', 0], ['2026-10-20', .36], ['2026-10-21', 1.2]])
   assert.equal(state.metrics.value?.amv, .36)
   assert.deepEqual(state.amvCard.value.latest, { day: '2026-10-21', changePercent: 1.2 })
@@ -72,7 +72,7 @@ test('默认浏览补采独立最新收盘日，成功刷新后保留视口；�
   state.setRange([0, 5])
   await new Promise(resolve => setImmediate(resolve))
   assert.equal(refreshes, 1)
-  assert.ok(requested.includes('2026-10-21'))
+  assert.deepEqual(requested, ['2026-10-21'])
   assert.deepEqual(state.range.value, [0, 5])
   assert.deepEqual(state.amvCard.value.latest, { day: '2026-10-21', changePercent: 0 })
   requested.length = 0
@@ -224,13 +224,23 @@ test('四张卡片的可见文本区分主值、独立最新值、最近事件�
   let html = await render()
   const text = () => html.replace(/<[^>]*>/g, '')
   assert.equal((html.match(/class="metric-card(?:"| )/g) ?? []).length, 4)
-  assert.match(html, /最新已收盘.*2026-10-21.*\+0\.00%/s)
+  const amvHtml = () => html.split('活跃市值·0AMV</span>')[1]!.split('<i ')[0]!
+  assert.match(amvHtml(), /<strong[^>]*>\+0\.00%<\/strong>/)
+  assert.match(amvHtml(), /2026-10-21收盘值/)
+  assert.doesNotMatch(amvHtml(), /正在补采/)
+  assert.doesNotMatch(html, /最新已收盘/)
   assert.match(text(), /空：2026-10-20单日跌破−2\.3% · −2\.50%/)
   assert.match(html, /amv-signal-short/)
   assert.doesNotMatch(html, /最近触发：|<br|当日涨跌幅/)
+  data.value = { ...data.value, amv: [['2026-10-19', 7], ['2026-10-20', -2.5], ['2026-10-21', -.39]] }
+  await nextTick()
+  html = await render()
+  assert.match(amvHtml(), /<strong[^>]*>−0\.39%<\/strong>/)
+  assert.match(amvHtml(), /2026-10-21收盘值/)
   state.selectedDay.value = '2026-10-19'
   html = await render()
   assert.doesNotMatch(html, /最新已收盘|2026-10-21/)
+  assert.match(amvHtml(), /<strong[^>]*>\+7\.00%<\/strong>/)
   assert.match(text(), /多：2026-10-19单日涨超4%/)
   assert.match(html, /amv-signal-long/)
   data.value = { ...data.value, amv: [['2026-10-19', 3], ['2026-10-20', 1.2]] }

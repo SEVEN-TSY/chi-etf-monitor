@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { colors, number, percent, signed } from '../domain/format'
 import type { AmvCard, Point } from '../domain/types'
-defineProps<{ point?: Point; amv?: AmvCard; amvStatus?: string; latestAmvStatus?: string }>()
+const props = defineProps<{ point?: Point; amv?: AmvCard; amvStatus?: string; latestAmvStatus?: string }>()
+const amvValue = computed(() => props.amv?.latest?.changePercent ?? props.point?.amv)
 function trend(value: number | null | undefined) {
   return value == null || value === 0 ? 'var(--text)' : value > 0 ? colors[0] : colors[1]
 }
@@ -28,13 +30,12 @@ function activity(point?: Point) {
     </div>
     <div class="metric-card">
       <span>活跃市值·0AMV</span>
-      <strong :style="{ color: trend(point?.amv) }">{{ percent(point?.amv) }}</strong>
-      <p v-if="point?.amv == null">{{ amvStatus || '暂无当日数据' }}</p>
-      <p v-if="amv?.latestTarget" class="amv-note">
-        <template v-if="amv.latest">最新已收盘：{{ amv.latest.day }} {{ percent(amv.latest.changePercent) }}</template>
-        <template v-else>最新已收盘：暂无可用数据</template>
-        <span v-if="amv.latest?.day !== amv.latestTarget" class="amv-pending">{{ amv.latestTarget }}：{{ latestAmvStatus || '暂无当日数据' }}</span>
-      </p>
+      <div class="amv-value">
+        <strong :style="{ color: trend(amvValue) }">{{ percent(amvValue) }}</strong>
+        <small v-if="amv?.latest" class="amv-close-date">{{ amv.latest.day }}收盘值</small>
+      </div>
+      <p v-if="amv?.latestTarget && amv.latest?.day !== amv.latestTarget" class="amv-note">{{ amv.latestTarget }}：{{ latestAmvStatus || '暂无当日数据' }}</p>
+      <p v-else-if="amvValue == null">{{ amvStatus || '暂无当日数据' }}</p>
       <p v-if="amv?.trigger" class="amv-signal" :class="amv.trigger.type === 'daily-decline' ? 'amv-signal-short' : 'amv-signal-long'">
         <b class="amv-signal-label">{{ amv.trigger.type === 'daily-decline' ? '空：' : '多：' }}</b>
         <span>{{ amv.trigger.day }}{{ amv.trigger.type === 'daily-decline' ? '单日跌破−2.3%' : amv.trigger.type === 'daily-rise' ? '单日涨超4%' : '连续两日涨超4%' }}<template v-if="amv.trigger.type === 'daily-decline'"> · {{ percent(amv.trigger.changePercent) }}</template></span>

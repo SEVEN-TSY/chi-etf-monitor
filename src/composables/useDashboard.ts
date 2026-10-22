@@ -49,11 +49,8 @@ export function useDashboard(payload: MaybeRefOrGetter<Payload>) {
     ? model.points.find(p => p.day === selectedDay.value) : visiblePoints.value.at(-1))
   const amvCard = computed(() => createAmvCard(toValue(payload), selectedDay.value, now.value))
   const amvSyncTargets = computed(() => {
-    const days = new Set<string>()
-    if (metrics.value?.amv == null && metrics.value?.day) days.add(metrics.value.day)
-    const latest = amvCard.value.latestTarget
-    if (latest && !(toValue(payload).amv ?? []).some(([day]) => day === latest)) days.add(latest)
-    return [...days]
+    const day = amvCard.value.latestTarget ?? metrics.value?.day
+    return day && !(toValue(payload).amv ?? []).some(([cachedDay, value]) => cachedDay === day && Number.isFinite(value)) ? [day] : []
   })
   const detailDay = computed(() => selectedDay.value ?? model.latest)
   const detailIndex = computed(() => model.dates.indexOf(detailDay.value))
