@@ -8,7 +8,7 @@
     "start": "npm run build && vite preview --host 127.0.0.1 --port 5173",
     "build": "vue-tsc --noEmit && vite build",
     "test": "tsx --test tests/*.test.ts",
-    "collect": "python ../monitor.py"
+    "collect": "python scripts/collect_etf.py"
   },
   "engines": {
     "node": ">=24.0.0"

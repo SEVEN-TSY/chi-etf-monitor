@@ -13,6 +13,8 @@ dist-ssr/
 coverage/
 __pycache__/
 *.pyc
+/data/
+/reports/
 
 # Local environment configuration
 .env

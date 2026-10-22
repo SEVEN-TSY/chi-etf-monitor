@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import funds from '../../../funds.json' with { type: 'json' }
+import funds from '../../scripts/funds.json' with { type: 'json' }
 import type { Payload } from '../../src/domain/types.ts'
 import type { EtfRepository } from '../repositories/etfRepository.ts'
 

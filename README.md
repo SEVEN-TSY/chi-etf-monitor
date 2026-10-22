@@ -1,6 +1,6 @@
 # ETF本地单体应用
 
-Vue3＋TypeScript＋Vite负责页面，Hono负责同一进程内的接口路由，Node.js内置SQLite驱动直接只读查询`../data/etf.sqlite3`。页面与接口使用同一地址，没有单独的Python服务、代理或跨域配置。
+Vue3＋TypeScript＋Vite负责页面，Hono负责同一进程内的接口路由，Node.js内置SQLite驱动直接只读查询本项目的`data/etf.sqlite3`。页面与接口使用同一地址，没有单独的Python服务、代理或跨域配置。
 
 ## 启动
 
@@ -39,7 +39,7 @@ local/
 
 新增接口时，在`routes/`注册路由并在`app.ts`挂载；已有数据查询复用Repository，需要新查询时集中在对应Repository中实现。新的数据领域可以新增对应Repository与业务模块，共用`db/connection.ts`。筛选参数应在路由层校验，查询使用绑定参数，禁止把参数拼接进SQL。
 
-当前数据库结构稳定、查询简单，采用原生SQLite即可。Hono提供路由组织和统一错误处理；暂不引入ORM和数据库迁移组件，避免两套程序争用表结构管理。基金元数据统一维护在根目录`funds.json`，页面查询与Python采集共同使用。
+当前数据库结构稳定、查询简单，采用原生SQLite即可。Hono提供路由组织和统一错误处理；暂不引入ORM和数据库迁移组件，避免两套程序争用表结构管理。基金元数据统一维护在`scripts/funds.json`，页面查询与Python采集共同使用。
 
 ## 页面代码
 
@@ -55,17 +55,47 @@ local/
 
 ## 数据采集
 
-在根目录执行`python monitor.py`，只采集官方数据并写入SQLite，保存原始响应、修订记录及`data/last_run.json`执行状态。不构建页面、不导出JSON、不生成分析报告、不启动应用。定时任务每天北京时间9:10、23:10执行同一命令，成功静默，执行失败才提示。
+ETF份额和0AMV解析后存入SQLite，原始JSON及二进制响应不另存文件。采集命令会自动移除旧数据库中的`raw_path`列，保留已有观测数据。
 
-`python monitor.py --report`仅供手动生成旧版Markdown报告。`python dashboard.py --snapshot`仅供手动导出某一时刻的聊天快照，这些都不属于定时任务；日常查看数据使用正在运行的本地应用。
+### 手动执行
+
+安装Python3.10或更高版本即可采集，采集脚本仅使用Python标准库，无需启动Codex、定时任务或页面服务。在frontend目录执行：
+
+```powershell
+python scripts/collect_etf.py
+```
+
+也可以使用已有的npm命令：
+
+```powershell
+npm run collect
+```
+
+默认仅采集北京时间昨天（前一自然日）。采集当年1月1日至今天的全部数据时使用`all`，沿用已有的增量查询和近期数据复查逻辑：
+
+```powershell
+npm run collect all
+```
+
+采集最近7天，直接传数字，无需额外的参数分隔符：
+
+```powershell
+npm run collect 7
+```
+
+直接运行Python也支持`python scripts/collect_etf.py all`和`python scripts/collect_etf.py 7`。`all`或天数不能与日期范围参数混用。自定义日期范围可执行：
+
+```powershell
+python scripts/collect_etf.py --start 2026-10-01 --end 2026-10-22
+```
+
 
 ## 检查
 
 ```powershell
 npm test
 npm run build
-cd ..
-python -m unittest discover -s tests -v
+python -m unittest discover -s scripts -p "test_*.py" -v
 ```
 
 接口测试使用临时SQLite，验证同日修订立即可查、304版本判断、数据库缺失与错误响应；页面状态测试验证刷新后保留选择与日期范围；采集测试验证默认采集不生成报告或构建页面。均不修改真实数据库或重复联网采集。

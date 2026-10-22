@@ -1,0 +1,10 @@
+[
+  {"code":"510300","name":"华泰柏瑞沪深300ETF","short":"华泰柏瑞300","exchange":"SH","group":"沪深300"},
+  {"code":"510310","name":"易方达沪深300ETF","short":"易方达300","exchange":"SH","group":"沪深300"},
+  {"code":"510050","name":"华夏上证50ETF","short":"华夏上证50","exchange":"SH","group":"上证50"},
+  {"code":"510330","name":"华夏沪深300ETF","short":"华夏300","exchange":"SH","group":"沪深300"},
+  {"code":"159919","name":"嘉实沪深300ETF","short":"嘉实300","exchange":"SZ","group":"沪深300"},
+  {"code":"512100","name":"南方中证1000ETF","short":"南方1000","exchange":"SH","group":"中证1000"},
+  {"code":"588080","name":"易方达科创50ETF","short":"易方达科创50","exchange":"SH","group":"科创50"},
+  {"code":"159915","name":"易方达创业板ETF","short":"易方达创业板","exchange":"SZ","group":"创业板"}
+]
