@@ -79,7 +79,7 @@ const shortcuts = [{ key: '1m', label: '近1月' }, { key: '3m', label: '近3月
           <FundComparison :values="comparisons" :day="detailDay" @select="fund = $event" />
           <ChartLegend :items="[{ key: 'up', label: '份额增加', color: colors[0]! }, { key: 'down', label: '份额减少', color: colors[1]! }]" />
           <div class="history-header"><h3>{{ selectedFund.name }}</h3><label>历史走势<select v-model="fund" aria-label="历史走势ETF"><option v-for="f in model.funds" :key="f.code" :value="f.code">{{ f.name }} {{ f.code }}</option></select></label></div>
-          <TimeChart :dates="historyDays" :series="history" :range="[0, Math.max(0, historyDays.length-1)]" :height="320" :label="selectedFund.name + '总份额与每日增减'" unit="总份额（亿份）" secondary-unit="每日增减（亿份）" :tooltip="historyTooltip" @reset="returnToLatest" />
+          <TimeChart :dates="historyDays" :series="history" :range="[0, Math.max(0, historyDays.length-1)]" :height="320" :label="selectedFund.name + '总份额与每日增减'" unit="总份额（亿份）" secondary-unit="每日增减（亿份）" :tooltip="historyTooltip" />
           <ChartLegend :items="historyLegend" />
         </div>
       </section>

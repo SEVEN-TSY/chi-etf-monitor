@@ -93,7 +93,8 @@ function click(event: MouseEvent) {
   if (suppressClick) { suppressClick = false; return }
   position(event)
   const day = props.dates[hover.value!.index]
-  if (day) emit('select', day)
+  if (day === props.selectedDay) reset()
+  else if (day) emit('select', day)
 }
 function reset() {
   hover.value = null
@@ -115,7 +116,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', outside))
 const tick = (value: number) => Math.abs(value) >= 100 ? number(value, 0) : number(value, 2).replace(/\.?0+$/, '')
 </script>
 <template>
-  <div ref="element" class="time-chart" @keydown="keyboard" @dblclick.prevent="reset">
+  <div ref="element" class="time-chart" @keydown="keyboard">
     <svg :viewBox="`0 0 ${width} ${chartHeight}`" :height="chartHeight" class="plot-svg" role="img" :aria-label="label" tabindex="0">
       <defs><clipPath :id="clipId"><rect :x="left" :y="top" :width="right-left" :height="bottom-top" /></clipPath></defs>
       <text :x="left" y="15" class="axis-unit">{{ unit }}</text>
